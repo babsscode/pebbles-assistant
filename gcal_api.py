@@ -13,7 +13,7 @@ _calendars_cache: list[dict] | None = None
 
 
 # -------------------------------------------------------------------- auth
-def _credentials():
+"""def _credentials():
     creds = None
     if os.path.exists("token.json"):
         creds = Credentials.from_authorized_user_file("token.json", C.GOOGLE_SCOPES)
@@ -28,6 +28,47 @@ def _credentials():
             creds = flow.run_local_server(port=0)
         with open("token.json", "w") as f:
             f.write(creds.to_json())
+    return creds"""
+
+import os
+import json
+from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
+from google_auth_oauthlib.flow import InstalledAppFlow
+
+def _credentials():
+    creds = None
+    
+    # 1. Try to load the token from the Pella environment variable
+    token_json_str = os.environ.get("GOOGLE_TOKEN")
+    
+    if token_json_str:
+        # Load credentials directly from the environment string
+        token_info = json.loads(token_json_str)
+        creds = Credentials.from_authorized_user_info(token_info, C.GOOGLE_SCOPES)
+
+    # 2. If the token is missing, expired, or invalid
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            # Safely refresh the token in-memory
+            creds.refresh(Request())
+            
+            # OPTIONAL: If Pella supports persistent logs/storage, 
+            # you would print the new token to copy-paste back into Pella:
+            # print(f"NEW GOOGLE_TOKEN ENV VALUE: {creds.to_json()}")
+        else:
+            # Fallback to credentials.json string if no token exists
+            creds_json_str = os.environ.get("GOOGLE_CREDENTIALS")
+            if not creds_json_str:
+                raise Exception("Missing GOOGLE_TOKEN and GOOGLE_CREDENTIALS environment variables.")
+                
+            client_config = json.loads(creds_json_str)
+            flow = InstalledAppFlow.from_client_config(client_config, C.GOOGLE_SCOPES)
+            
+            # NOTE: This line will crash on Pella. 
+            # Make sure you provide a valid GOOGLE_TOKEN in Pella to avoid hitting this branch!
+            creds = flow.run_local_server(port=0)
+            
     return creds
 
 
