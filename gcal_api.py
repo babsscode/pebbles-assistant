@@ -1,4 +1,5 @@
 """Everything that talks to Google Calendar (classes + personal calendars)."""
+import json
 import os
 from datetime import date, datetime, time, timedelta
 
@@ -12,64 +13,41 @@ import config as C
 _calendars_cache: list[dict] | None = None
 
 
-# -------------------------------------------------------------------- auth
-"""def _credentials():
-    creds = None
-    if os.path.exists("token.json"):
-        creds = Credentials.from_authorized_user_file("token.json", C.GOOGLE_SCOPES)
-
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                "credentials.json", C.GOOGLE_SCOPES
-            )
-            creds = flow.run_local_server(port=0)
-        with open("token.json", "w") as f:
-            f.write(creds.to_json())
-    return creds"""
-
+# -------------------------------------------------------------------- authimport json
 import os
-import json
-from google.oauth2.credentials import Credentials
+import threading
+
 from google.auth.transport.requests import Request
-from google_auth_oauthlib.flow import InstalledAppFlow
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
+
+import config as C
+
+_calendars_cache: list[dict] | None = None
+_creds = None
+_lock = threading.Lock()
+
 
 def _credentials():
-    creds = None
-    
-    # 1. Try to load the token from the Pella environment variable
-    token_json_str = os.environ.get("GOOGLE_TOKEN")
-    
-    if token_json_str:
-        # Load credentials directly from the environment string
-        token_info = json.loads(token_json_str)
-        creds = Credentials.from_authorized_user_info(token_info, C.GOOGLE_SCOPES)
+    global _creds
+    with _lock:
+        if _creds is None:
+            raw = os.environ.get("GOOGLE_TOKEN")
+            if not raw:
+                raise RuntimeError("GOOGLE_TOKEN is not set.")
+            _creds = Credentials.from_authorized_user_info(
+                json.loads(raw), C.GOOGLE_SCOPES
+            )
+        if not _creds.valid:
+            if _creds.refresh_token:
+                _creds.refresh(Request())
+            else:
+                raise RuntimeError("GOOGLE_TOKEN has no refresh_token.")
+        return _creds
 
-    # 2. If the token is missing, expired, or invalid
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            # Safely refresh the token in-memory
-            creds.refresh(Request())
-            
-            # OPTIONAL: If Pella supports persistent logs/storage, 
-            # you would print the new token to copy-paste back into Pella:
-            # print(f"NEW GOOGLE_TOKEN ENV VALUE: {creds.to_json()}")
-        else:
-            # Fallback to credentials.json string if no token exists
-            creds_json_str = os.environ.get("GOOGLE_CREDENTIALS")
-            if not creds_json_str:
-                raise Exception("Missing GOOGLE_TOKEN and GOOGLE_CREDENTIALS environment variables.")
-                
-            client_config = json.loads(creds_json_str)
-            flow = InstalledAppFlow.from_client_config(client_config, C.GOOGLE_SCOPES)
-            
-            # NOTE: This line will crash on Pella. 
-            # Make sure you provide a valid GOOGLE_TOKEN in Pella to avoid hitting this branch!
-            creds = flow.run_local_server(port=0)
-            
-    return creds
+
+def _service():
+    return build("calendar", "v3", credentials=_credentials(), cache_discovery=False)
 
 
 def _service():
