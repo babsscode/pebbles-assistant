@@ -80,7 +80,7 @@ def status_icon(status: str) -> str:
         return "✅"
     if s in C.PROGRESS_WORDS:
         return "🟡"
-    return "▫️"
+    return "◽️"
 
 
 def parse_task(page: dict) -> dict:

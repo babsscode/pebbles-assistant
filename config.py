@@ -61,7 +61,7 @@ CLASSES_CALENDAR_ID = os.getenv("CLASSES_CALENDAR_ID")
 CLASSES_CALENDAR_NAME = os.getenv("CLASSES_CALENDAR_NAME", "classes")
 PERSONAL_CALENDAR_NAME = os.getenv("PERSONAL_CALENDAR_NAME", "myCalendar")
 
-EVENT_EMOJI = {"classes": "🎓", "personal": "📅"}
+EVENT_EMOJI = {"classes": "🎓", "personal": "▫️"}
 
 # ---------------------------------------------------------------- Timezone
 TIMEZONE_NAME = os.getenv("TIMEZONE", "America/New_York")

@@ -35,9 +35,11 @@ def task_lines(task: dict, number: int | None = None) -> list[str]:
     lines = [f"{prefix}{task['icon']} {name}"]
 
     meta = []
-    if task["course"]:
+    #if task["course"]:
+    if False:
         meta.append(esc(task["course"]))
-    if task["time"]:
+    #if task["time"]:
+    if False:
         meta.append(f"⏰ {esc(task['time'])}")
     if meta:
         lines.append(f"      ↳ {' · '.join(meta)}")
@@ -45,10 +47,11 @@ def task_lines(task: dict, number: int | None = None) -> list[str]:
 
 
 def event_lines(event: dict) -> list[str]:
-    emoji = C.EVENT_EMOJI.get(event["kind"], "📅")
+    emoji = "" if event["all_day"] else C.EVENT_EMOJI.get(event["kind"], "▫️")
     when = "All day" if event["all_day"] else dates.fmt_range(event["start"], event["end"])
-    lines = [f"{emoji} <b>{when}</b> · {esc(event['name'])}"]
-    if event.get("location"):
+    lines = [f"{emoji} {esc(event['name'])}· {when}"]
+    #if event.get("location"):
+    if (False):
         lines.append(f"      ↳ 📍 {esc(event['location'])}")
     return lines
 
